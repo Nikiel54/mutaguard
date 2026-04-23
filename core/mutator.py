@@ -1,17 +1,17 @@
-"""Core mutation abstractions for MutaGuard.
+"""
+Core mutation abstractions for MutaGuard.
 
-Three things live here:
-
+Contains:
   Mutant          - immutable record of one specific code change.
   MutationOperator - abstract base; each operator category subclasses this.
   MutatorRegistry  - walks the AST, asks every operator "can you mutate this
                      node?", and lazily yields Mutant objects.
 
-Design decisions:
-  - Mutants are LAZY: `generate_source()` unparsed on demand so we never hold
+Features:
+  Mutants are LAZY: `generate_source()` unparsed on demand so we never hold
     thousands of full source strings in memory at once.
-  - The registry skips docstrings (detected via parent map + is_docstring()).
-  - Each mutant gets a stable, sortable ID like "ArithmeticOperator_0042".
+  The registry skips docstrings (detected via parent map + is_docstring()).
+  Each mutant gets a stable, sortable ID like "ArithmeticOperator_0042".
 """
 from __future__ import annotations
 
@@ -33,11 +33,11 @@ class Mutant:
     """One specific mutation of the source file."""
     id: str               # e.g. "ArithmeticOperator_0001"
     operator: str         # class name of the operator that produced this
-    original_node: str    # ast.unparse() of the original node  (display)
-    mutated_node: str     # ast.unparse() of the replacement    (display)
+    original_node: str    # ast.unparse() of the original node
+    mutated_node: str     # ast.unparse() of the replacement
     source_file: str      # absolute path of the file being mutated
-    line_number: int      # line in the *original* source
-    column: int           # column offset in the original source
+    line_number: int      # line in the *original* source code
+    column: int           # column offset in the original source code
 
     # Private: held for lazy source generation – not shown in repr
     _mutated_tree: ast.Module = field(repr=False, default=None)
@@ -83,10 +83,11 @@ class MutatorRegistry:
         source_file: str,
         source_text: str,
     ) -> Iterator[Mutant]:
-        """Yield every Mutant that any registered operator can produce.
+        """
+        Yield every Mutant that any registered operator can produce.
 
-        Traversal order is deterministic (ast.walk is depth-first).
-        Docstrings are always skipped.
+        Traversal order is DFS.
+        Docstrings always skipped.
         """
         parent_map = build_parent_map(tree)
         counters: dict[str, int] = {}
@@ -100,10 +101,11 @@ class MutatorRegistry:
                 if is_docstring(node, parent):
                     continue
 
+                # is mutable
                 for replacement in operator.mutate(node):
                     op_name = operator.name
                     counters[op_name] = counters.get(op_name, 0) + 1
-                    mutant_id = f"{op_name}_{counters[op_name]:04d}"
+                    mutant_id = f"{op_name}_{counters[op_name]:04d}" # ensuring unique ids
 
                     mutated_tree = _replace_node(tree, node, replacement)
 
@@ -127,19 +129,17 @@ class MutatorRegistry:
 
 
 # ---------------------------------------------------------------------------
-# Internal helper
+# Internal helpers
 # ---------------------------------------------------------------------------
 
 def _replace_node(tree: ast.Module, target: ast.AST, replacement: ast.AST) -> ast.Module:
-    """Return a deep-copied tree with exactly *target* replaced by *replacement*.
+    """
+    Return a deep-copied tree with exactly [target] replaced by [replacement].
 
-    Matching is by object identity on the *original* tree; after deepcopy we
-    re-walk to find the structurally equivalent position.
+    Tree is deepcopied first, then node is mutated and swapped out.
 
-    Strategy: deepcopy the tree first, then use a NodeTransformer that matches
-    on (lineno, col_offset, type) to find the copy of our target node and swap
-    it out. Using identity (id()) on the copy won't work since deepcopy changes
-    addresses — we use a positional fingerprint instead.
+    Using identity (id()) on the copy won't work since deepcopy changes
+      addresses — we use a positional fingerprint instead.
     """
     target_lineno = getattr(target, "lineno", None)
     target_col = getattr(target, "col_offset", None)
@@ -168,3 +168,4 @@ def _replace_node(tree: ast.Module, target: ast.AST, replacement: ast.AST) -> as
     _Replacer().visit(tree_copy)
     ast.fix_missing_locations(tree_copy)
     return tree_copy
+
