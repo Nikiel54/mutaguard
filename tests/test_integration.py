@@ -292,4 +292,57 @@ class TestCLI:
         )
         assert len(verbose_run.stderr) > len(default_run.stderr)
 
+    def test_cli_exclude_lines(self, tmp_path):
+        """--exclude-lines should reduce mutant count."""
+        report_path = tmp_path / "report.html"
+        
+        # First run without exclusion
+        result_full = subprocess.run(
+            [
+                sys.executable, "cli.py",
+                str(DUMMIES / "calculator.py"),
+                "--tests", str(DUMMIES / "test_calculator.py"),
+                "--workers", "1", "--timeout", "30",
+                "--report", str(report_path.resolve()),
+                "--operators", "arithmetic",
+            ],
+            capture_output=True, text=True,
+            cwd=Path(__file__).parent.parent,
+            env=_cli_env(),
+        )
+
+        # Second run excluding line 5 (the add function)
+        result_excl = subprocess.run(
+            [
+                sys.executable, "cli.py",
+                str(DUMMIES / "calculator.py"),
+                "--tests", str(DUMMIES / "test_calculator.py"),
+                "--workers", "1", "--timeout", "30",
+                "--report", str(report_path.resolve()),
+                "--operators", "arithmetic",
+                "--exclude-lines", "5",
+            ],
+            capture_output=True, text=True,
+            cwd=Path(__file__).parent.parent,
+            env=_cli_env(),
+        )
+
+        # Excluding a line must reduce the mutant count
+        assert "Generated" in result_full.stderr
+        assert "Generated" in result_excl.stderr
+
+        def extract_count(stderr: str) -> int:
+            for line in stderr.splitlines():
+                if "Generated" in line:
+                    return int(line.split()[2])
+            return -1
+
+        full_count = extract_count(result_full.stderr)
+        excl_count = extract_count(result_excl.stderr)
+        assert excl_count < full_count, (
+            f"Expected fewer mutants with exclusion: {excl_count} vs {full_count}"
+        )
+
+
+
 
