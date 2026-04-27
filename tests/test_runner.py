@@ -20,7 +20,7 @@ import pytest
 from core.mutator import Mutant
 from core.runner import MutantResult, MutantStatus, run_mutant
 
-FIXTURES = Path(__file__).parent / "fixtures"
+DUMMIES = Path(__file__).parent / "dummies"
 
 
 # ---------------------------------------------------------------------------
@@ -77,8 +77,8 @@ class TestKilledOutcome:
                     return high
                 return value
         """)
-        mutant = make_mutant(FIXTURES / "calculator.py", mutated)
-        result = run_mutant(mutant, [FIXTURES / "test_calculator.py"], FIXTURES, timeout=30.0)
+        mutant = make_mutant(DUMMIES / "calculator.py", mutated)
+        result = run_mutant(mutant, [DUMMIES / "test_calculator.py"], DUMMIES, timeout=30.0)
         assert result.status == MutantStatus.KILLED
 
     def test_relational_mutation_killed(self):
@@ -105,16 +105,16 @@ class TestKilledOutcome:
                     return high
                 return value
         """)
-        mutant = make_mutant(FIXTURES / "calculator.py", mutated)
-        result = run_mutant(mutant, [FIXTURES / "test_calculator.py"], FIXTURES, timeout=30.0)
+        mutant = make_mutant(DUMMIES / "calculator.py", mutated)
+        result = run_mutant(mutant, [DUMMIES / "test_calculator.py"], DUMMIES, timeout=30.0)
         assert result.status == MutantStatus.KILLED
 
     def test_result_has_duration(self):
         """Every result must record how long the run took."""
-        mutated = FIXTURES / "calculator.py"
+        mutated = DUMMIES / "calculator.py"
         source = mutated.read_text()
         mutant = make_mutant(mutated, source.replace("a + b", "a - b"))
-        result = run_mutant(mutant, [FIXTURES / "test_calculator.py"], FIXTURES, timeout=30.0)
+        result = run_mutant(mutant, [DUMMIES / "test_calculator.py"], DUMMIES, timeout=30.0)
         assert result.duration > 0
 
 

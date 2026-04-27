@@ -22,7 +22,7 @@ from core.operators.statement import StatementOperator
 from core.mutator import MutatorRegistry
 from core.parser import parse_source
 
-FIXTURES = Path(__file__).parent / "fixtures"
+DUMMIES = Path(__file__).parent / "dummies"
 
 
 # ---------------------------------------------------------------------------
@@ -352,14 +352,14 @@ class TestMutatorRegistry:
         from core.operators.relational import RelationalOperator
         from core.operators.constant import ConstantOperator
 
-        tree, source = parse_source(FIXTURES / "calculator.py")
+        tree, source = parse_source(DUMMIES / "calculator.py")
         registry = MutatorRegistry([ArithmeticOperator(), RelationalOperator(), ConstantOperator()])
         mutants = list(registry.generate_mutants(tree, "calculator.py", source))
 
         assert len(mutants) > 5, f"Expected >5 mutants, got {len(mutants)}"
 
     def test_mutant_ids_are_unique(self):
-        tree, source = parse_source(FIXTURES / "calculator.py")
+        tree, source = parse_source(DUMMIES / "calculator.py")
         registry = MutatorRegistry([
             ArithmeticOperator(), RelationalOperator(), BooleanOperator(),
             StatementOperator(), ConstantOperator(), BoundaryOperator(),
@@ -369,14 +369,14 @@ class TestMutatorRegistry:
         assert len(ids) == len(set(ids)), "Duplicate mutant IDs found"
 
     def test_every_mutant_has_line_number(self):
-        tree, source = parse_source(FIXTURES / "calculator.py")
+        tree, source = parse_source(DUMMIES / "calculator.py")
         registry = MutatorRegistry([ArithmeticOperator(), RelationalOperator()])
         for m in registry.generate_mutants(tree, "calculator.py", source):
             assert m.line_number > 0, f"Mutant {m.id} has no line number"
 
     def test_every_mutant_generates_valid_source(self):
         """generate_source() must produce compilable Python for every mutant."""
-        tree, source = parse_source(FIXTURES / "calculator.py")
+        tree, source = parse_source(DUMMIES / "calculator.py")
         registry = MutatorRegistry([
             ArithmeticOperator(), RelationalOperator(), BooleanOperator(),
             StatementOperator(), ConstantOperator(), BoundaryOperator(),
