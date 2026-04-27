@@ -172,7 +172,7 @@ class TestTerminalReporter:
         if full_report.surviving_mutants:
             assert "Surviving Mutants" in output
         else:
-            assert "No surviving mutants" in output
+            assert "All mutants killed" in output
 
     def test_summary_elapsed_time_present(self, full_report):
         output = self._capture_summary(full_report)
@@ -207,7 +207,7 @@ class TestTerminalReporter:
         buf = io.StringIO()
         with patch("sys.stdout", buf):
             print_summary(report)
-        assert "No surviving mutants" in buf.getvalue()
+        assert "All mutants killed" in buf.getvalue()
 
 
 
